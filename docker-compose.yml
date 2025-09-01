@@ -1,0 +1,19 @@
+services:
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - ./init.cql:/docker-entrypoint-initdb.d/init.cql
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  cert_app:
+    build: .
+    depends_on:
+      cassandra:
+        condition: service_healthy
