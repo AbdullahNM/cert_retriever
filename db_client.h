@@ -1,40 +1,30 @@
-#ifndef DB_CLIENT_H
-#define DB_CLIENT_H
-
+#pragma once
 #include <cassandra.h>
 #include <string>
+#include <vector>
 
-/**
- * Establishes a connection to Cassandra and returns a session object.
- * @param contact_point The hostname or IP of Cassandra.
- * @param port The port number (default 9042).
- * @return A pointer to CassSession (active connection).
- */
+struct CertRecord {
+    std::string serial_no;
+    std::string subject;
+    std::string issued_on;
+    std::string expires_on;
+};
+
 CassSession* connect_db(const std::string& contact_point, int port, CassCluster** cluster);
-
-/**
- * Gracefully closes the Cassandra session and frees resources.
- * @param session The Cassandra session.
- * @param cluster The Cassandra cluster configuration object.
- */
 void close_db(CassSession* session, CassCluster* cluster);
+void ensure_schema(CassSession* session);
 
-/**
- * Inserts a certificate record into the `certificates` table.
- * @param session Active Cassandra session.
- * @param serial The certificate serial number.
- * @param subject The subject of the certificate (e.g., CN=...).
- */
-void insert_cert(CassSession* session,
+bool insert_cert(CassSession* session,
                  const std::string& serial,
-                 const std::string& subject);
+                 const std::string& subject,
+                 int validity_days = 365);
 
-/**
- * Queries a certificate by serial number and prints its subject + metadata.
- * @param session Active Cassandra session.
- * @param serial The certificate serial number to query.
- */
-void query_cert(CassSession* session,
-                const std::string& serial);
+bool query_cert(CassSession* session,
+                const std::string& serial,
+                CertRecord& record);
 
-#endif
+bool delete_cert(CassSession* session,
+                 const std::string& serial);
+
+std::vector<CertRecord> list_all_certs(CassSession* session);
+std::vector<CertRecord> list_expiring_certs(CassSession* session, int within_days);
